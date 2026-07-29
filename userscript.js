@@ -25,6 +25,11 @@
     (list()[i]?.firstElementChild?.getAttribute('style') || '').includes(CHECKED);
   const left = () => [...list()].filter((_, i) => !checkedAt(i)).length;
 
+  // Instagram renders a spinner at the tail of the list while more rows are inbound.
+  // While it exists the list is NOT complete, no matter how long growth has stalled.
+  // Without this, a long pagination pause reads as "finished, 0 left".
+  const isLoading = () => !!document.querySelector('svg[aria-label="Loading..."]');
+
   const scroller = () => [...document.querySelectorAll('div')]
     .filter(el => {
       const s = getComputedStyle(el);
@@ -95,15 +100,20 @@
         const n0 = list().length, h0 = t.scrollHeight;
         t.scrollTop = t.scrollHeight;
         await sleep(SCROLL_WAIT);
-        if (list().length === n0 && t.scrollHeight === h0) idle++; else idle = 0;
-        paint(`Loading more... ${list().length} rows, ${left()} left (${idle}/${IDLE_LIMIT})`);
+        const grew = list().length !== n0 || t.scrollHeight !== h0;
+        // the spinner outranks the idle counter: still loading means still not done
+        idle = (grew || isLoading()) ? 0 : idle + 1;
+        paint(isLoading()
+          ? `Loading more... ${list().length} rows, ${left()} left`
+          : `Loading more... ${list().length} rows, ${left()} left (${idle}/${IDLE_LIMIT})`);
       }
       console.log(`[HideStory] round ${round}: ${before} -> ${list().length} rows, ${left()} left`);
-      if (list().length === before && left() === 0) break;
+      if (list().length === before && left() === 0 && !isLoading()) break;
     }
 
     running = false;
-    paint(left() ? `Done — ${left()} left, click to resume` : `All selected`);
+    paint(left() ? `Done — ${left()} left, click to resume`
+                 : `All ${list().length} selected`);
     console.log('[HideStory] finished. selected', total, 'this run.', left(), 'left');
   }
 
@@ -114,6 +124,12 @@
     const existing = document.getElementById('__hsBtn');
     if (onPage && list().length && !existing) makeButton();
     if (!onPage && existing) { existing.remove(); btn = null; stop = true; }
-    if (onPage && existing && !running) paint(`Select all (${left()} left)`);
+    // Report rows too, and never imply the list is complete while the spinner is up.
+    // "0 left" on its own is what made a still loading list look like a broken script.
+    if (onPage && existing && !running) {
+      paint(isLoading()
+        ? `Select all — ${list().length} rows loaded, still loading...`
+        : `Select all (${left()} left of ${list().length})`);
+    }
   }, 1500);
 })();

@@ -8,6 +8,8 @@
   const checkedAt = i =>
     (list()[i]?.firstElementChild?.getAttribute('style') || '').includes(CHECKED);
   const left = () => [...list()].filter((_, i) => !checkedAt(i)).length;
+  // While this spinner exists more rows are inbound, no matter how long growth stalled.
+  const isLoading = () => !!document.querySelector('svg[aria-label="Loading..."]');
   const scroller = () => [...document.querySelectorAll('div')]
     .filter(el => {
       const s = getComputedStyle(el);
@@ -52,10 +54,11 @@
       const n0 = list().length, h0 = t.scrollHeight;
       t.scrollTop = t.scrollHeight;
       await sleep(4000);
-      if (list().length === n0 && t.scrollHeight === h0) idle++; else idle = 0;
+      const grew = list().length !== n0 || t.scrollHeight !== h0;
+      idle = (grew || isLoading()) ? 0 : idle + 1;
     }
     console.log(`round ${round}: rows ${before} -> ${list().length}, ${left()} unselected`);
-    if (list().length === before && left() === 0) break;
+    if (list().length === before && left() === 0 && !isLoading()) break;
   }
   console.log(`FINISHED. selected ${total} this run. ${list().length} rows, ${left()} still unselected.`);
 })();
