@@ -162,3 +162,11 @@ All measured against the live page on a real account.
 | resumed run, patient scroll | 1499 stalled state recovered to 1748 |
 | hidden vs remaining on resume | 1499 + 249 = 1748, so no account cap |
 | v7 end to end with a 12 click budget | 1499 to 1511 checked, 249 to 237 left |
+
+## Contributing
+
+Issues and pull requests are welcome. Instagram changes this page without notice, so reports that it has broken, with evidence, are genuinely useful. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).
